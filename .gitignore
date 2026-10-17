@@ -1,0 +1,13 @@
+Thumbs.db
+.DS_Store
+.venv
+.vscode
+__pycache__
+*.pyc
+*.egg-info/
+*.comparison.json
+build/
+dist/
+build-dev/
+build-stage/
+*scratch*
