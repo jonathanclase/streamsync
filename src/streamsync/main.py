@@ -59,6 +59,7 @@ def cli() -> None:
     argparser.add_argument('-b', '--baseline', required=True, help="The baseline media file (the video stream)")
     argparser.add_argument('-s', '--subject', required=True, action="append", help="A media file to compare against the baseline (a commentary stream); repeatable")
     argparser.add_argument('-v', '--verbose', action="store_true", help="Also print the coarse peaks and every window's fine result")
+    argparser.add_argument('-o', '--output-only', action="store_true", help="Don't prompt to mux the files; display the results only")
     args = argparser.parse_args()
 
     baseline = args.baseline
@@ -70,9 +71,13 @@ def cli() -> None:
     print(f"Finished in {minutes}m {seconds:02}s.")
 
     if not comms:
+        # No match is a valid result in output-only mode, so exit cleanly
+        if args.output_only:
+            print("No subject matched the baseline.")
+            return
         sys.exit("No subject matched the baseline; nothing to mux.")
 
-    if input("\tMux into output? [y/N] ").strip().lower() in ("y", "yes"):
+    if not args.output_only and input("\tMux into output? [y/N] ").strip().lower() in ("y", "yes"):
         try:
             combine_files(baseline, comms, "output.mkv")
         except ERRORS as e:

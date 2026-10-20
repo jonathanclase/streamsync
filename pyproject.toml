@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "streamsync"
-version = "0.1.0"
+version = "0.2.0"
 description = "A Python tool to evaluate two or more media files and return the appropriate offsets required to sync the audio tracks, with an option to automatically mux the files"
 readme = "README.md"
 license = { file = "LICENSE" }

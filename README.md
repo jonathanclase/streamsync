@@ -194,7 +194,7 @@ python -m streamsync.correlate -b reference.wav -s other.wav -v
 ## Usage
 
 ```bash
-streamsync -b BASELINE -s SUBJECT [-s SUBJECT ...] [-v]
+streamsync -b BASELINE -s SUBJECT [-s SUBJECT ...] [-v] [-o]
 ```
 
 | Option | Description |
@@ -202,16 +202,17 @@ streamsync -b BASELINE -s SUBJECT [-s SUBJECT ...] [-v]
 | `-b`, `--baseline` | The video file to sync to. Required. |
 | `-s`, `--subject` | An audio or video file to sync, such as a commentary track. Required; repeat to sync several files in one run. |
 | `-v`, `--verbose` | Also print diagnostics: the strongest coarse matches and every window's result. Useful when a result looks wrong. |
+| `-o`, `--output-only` | Print the results without asking to mux. Use this when running StreamSync from a script or another tool.|
 
 Any format FFmpeg can read works for both. Only the **first** audio track of each file is used for matching.
 
 **Example:** sync two commentary tracks to a film.
 
 ```bash
-streamsync -b "Big Fish (2003).mkv" -s "Director Commentary.mp3" -s "Cast Commentary.mp3"
+streamsync -b "Film (2016).mkv" -s "Director Commentary.mp3" -s "Cast Commentary.mp3"
 ```
 
-After matching, StreamSync asks whether to mux the matched tracks into a new file. If you answer `y`, it asks for a title for each track (for example "Director's Commentary"), which is what media players show in their audio track menu.
+After matching, StreamSync asks whether to mux the matched tracks into a new file (unless running in `output-only` mode). Upon answering `y`, the tool will prompt for a metadata title for each track (for example "Director's Commentary").
 
 ---
 ## Output
@@ -258,11 +259,11 @@ Nothing is re-encoded, so the output is the same quality as the inputs.
 
 #### 🟩 ${\color{green}\textsf{Now}}$
 - Continue working on the thresholds to find a balance between false positives and false negatives
+- Format the output and allow this script to be used as a tool in a larger workflow, e.g., by Claude
 
 #### 🟦 ${\color{blue}\textsf{Next}}$
 
 #### 🟧 ${\color{orange}\textsf{Later}}$
-- Format the output and allow this script to be used as a tool in a larger workflow, e.g., by Claude
 
 ## License
 
