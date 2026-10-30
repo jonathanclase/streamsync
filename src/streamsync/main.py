@@ -9,7 +9,7 @@ from .convert import comm, combine_files
 
 ERRORS = (OSError, waverror, ValueError, RuntimeError, subprocess.CalledProcessError)
 
-def main(baseline:str, subjects:list, verbose:bool=False) -> list[comm]:
+def main(baseline:str, subjects:list, verbose:bool=False, minimal_output:bool=False) -> list[comm]:
     comms = []
     baseline = fileobject(baseline)
 
@@ -20,33 +20,38 @@ def main(baseline:str, subjects:list, verbose:bool=False) -> list[comm]:
         except ERRORS as e:
             sys.exit(f"Baseline: {e}")
 
-        print(f"Baseline: {baseline.name}")
+        if not minimal_output: print(f"Baseline: {baseline.name}")
         for subj in subjects:
             subj = fileobject(subj)
-            print(f"{subj.name}:")
+            if not minimal_output: print(f"{subj.name}:")
 
             try:
                 subj_wav = makewaves.create_wav(subj, tmpdir)
                 result = correlate.find_offset(baseline_wav, subj_wav, baseline_env)
             except ERRORS as e:
                 print(f"\tError: {e}", file=sys.stderr)
+                if minimal_output: print("None")
                 continue
 
             if not result.matched:
-                print(f"\t{correlate.no_match_reason(result)}; skipped")
-                if verbose:
+                if not minimal_output: print(f"\t{correlate.no_match_reason(result)}; skipped")
+                else: print("None")
+                if verbose and not minimal_output:
                     correlate.print_diagnostics(result)
                 continue
 
-            print(f"\tOffset: {result.offset:+.5f}s")
+            if not minimal_output:
+                print(f"\tOffset: {result.offset:+.5f}s")
+            else:
+                print(f"{result.offset:+.5f}")
             if note := correlate.coarse_only_note(result):
-                print(f"\t{note}")
+                if not minimal_output:print(f"\t{note}")
             if result.drift_ppm is not None:
-                print(f"\tDrift: {result.drift_ppm:+.1f} ppm")
-            if result.segments: print("\tTest Segments:")
+                if not minimal_output: print(f"\tDrift: {result.drift_ppm:+.1f} ppm")
+            if result.segments and not minimal_output: print("\tTest Segments:")
             for s in result.segments:
-                print(f"\t\t{helpers.float_to_timestamp(s.start)} - {helpers.float_to_timestamp(s.stop)}: Offset {s.offset:+.3f} s")
-            if verbose:
+                if not minimal_output: print(f"\t\t{helpers.float_to_timestamp(s.start)} - {helpers.float_to_timestamp(s.stop)}: Offset {s.offset:+.3f} s")
+            if verbose and not minimal_output:
                 correlate.print_diagnostics(result)
             comms.append(comm(file=subj, offset=result.offset, titletag="", titlelang="eng"))
 
@@ -60,28 +65,34 @@ def cli() -> None:
     argparser.add_argument('-s', '--subject', required=True, action="append", help="A media file to compare against the baseline (a commentary stream); repeatable")
     argparser.add_argument('-v', '--verbose', action="store_true", help="Also print the coarse peaks and every window's fine result")
     argparser.add_argument('-o', '--output-only', action="store_true", help="Don't prompt to mux the files; display the results only")
+    argparser.add_argument('-m', '--minimal-output', action="store_true", help="Show only the offset result (float) or None, with no other details (Overrides -v/--verbose)")
     args = argparser.parse_args()
 
     baseline = args.baseline
 
-    comms = main(baseline, args.subject, args.verbose)
+    comms = main(baseline, args.subject, args.verbose, args.minimal_output)
 
-    print()
-    minutes, seconds = divmod(round(time.monotonic() - started), 60)
-    print(f"Finished in {minutes}m {seconds:02}s.")
+    if not args.minimal_output:
+        print()
+        minutes, seconds = divmod(round(time.monotonic() - started), 60)
+        print(f"Finished in {minutes}m {seconds:02}s.")
 
     if not comms:
         # No match is a valid result in output-only mode, so exit cleanly
-        if args.output_only:
+        if args.minimal_output:
+            return      # each subject already printed its None
+        elif args.output_only:
             print("No subject matched the baseline.")
             return
         sys.exit("No subject matched the baseline; nothing to mux.")
 
-    if not args.output_only and input("\tMux into output? [y/N] ").strip().lower() in ("y", "yes"):
+    
+    if not args.output_only and not args.minimal_output and input("\tMux into output? [y/N] ").strip().lower() in ("y", "yes"):
         try:
             combine_files(baseline, comms, "output.mkv")
         except ERRORS as e:
-            sys.exit(f"Output: {e}")
+            print(f"Output: {e}", file=sys.stderr)
+            sys.exit(1)
         print("Wrote output.mkv")
 
 if __name__ == "__main__":
